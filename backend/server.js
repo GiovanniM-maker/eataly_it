@@ -24,10 +24,17 @@ const authenticateToken = (req, res, next) => {
 };
 
 const protectApi = (req, res, next) => {
+  // #region agent log
+  if (req.path.includes('drive-image')) {
+    fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:protectApi',message:'drive-image request',data:{path:req.path,startsWithDriveImage:req.path.startsWith('/drive-image/'),includesDriveImage:req.path.includes('drive-image')},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+  }
+  // #endregion
   if (!hasAuth) return next();
   if (req.path === '/health' || req.path.startsWith('/auth/')) return next();
+  if (req.path.includes('/debug/')) return next();
   // Immagini: <img src> non invia Authorization, quindi drive-image deve essere pubblico
-  if (req.path.startsWith('/drive-image/')) return next();
+  // req.path è /api/drive-image/xxx, non /drive-image/xxx
+  if (req.path.includes('drive-image')) return next();
   authenticateToken(req, res, next);
 };
 
@@ -61,6 +68,16 @@ app.post('/api/auth/login', (req, res) => {
   if (!role) return res.status(401).json({ error: 'Password errata' });
   const token = jwt.sign({ role }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, role });
+});
+
+app.get('/api/debug/image-config', (req, res) => {
+  const backendUrl = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || process.env.VITE_API_URL || '';
+  res.json({
+    backendUrl: backendUrl || '(empty)',
+    hasBackendUrl: !!backendUrl,
+    sampleImageUrl: backendUrl ? `${backendUrl.replace(/\/$/, '')}/api/drive-image/TEST_ID` : null,
+    env: { hasBackend: !!process.env.BACKEND_URL, hasRender: !!process.env.RENDER_EXTERNAL_URL, hasVite: !!process.env.VITE_API_URL },
+  });
 });
 
 app.get('/api/auth/check', (req, res) => {
@@ -414,15 +431,20 @@ app.get('/api/product/:sku', async (req, res) => {
     // Helper per ottenere URL immagine accessibile
     // Usa proxy backend per bypassare problemi CORS e permessi
     const getImageUrl = (file) => {
+      // #region agent log
+      const backendUrl = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || process.env.VITE_API_URL || '';
+      const hasFile = !!(file && file.id);
+      const finalUrl = hasFile ? (backendUrl ? `${backendUrl}/api/drive-image/${file.id}` : `/api/drive-image/${file.id}`) : null;
+      fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:getImageUrl',message:'getImageUrl result',data:{hasFile,fileId:file?.id,backendUrl,backendUrlLength:backendUrl.length,finalUrl,sku},timestamp:Date.now(),hypothesisId:'H1,H5'})}).catch(()=>{});
+      // #endregion
       if (!file || !file.id) return null;
       
       // Usa sempre il proxy backend per evitare problemi CORS e permessi
-      // Costruisci URL completo se disponibile, altrimenti usa relativo
-      const backendUrl = process.env.BACKEND_URL || process.env.VITE_API_URL || '';
+      // Costruisci URL completo: BACKEND_URL, RENDER_EXTERNAL_URL (auto su Render), o VITE_API_URL
       if (backendUrl) {
-        return `${backendUrl}/api/drive-image/${file.id}`;
+        return `${backendUrl.replace(/\/$/, '')}/api/drive-image/${file.id}`;
       }
-      // URL relativo: Vite proxy lo reindirizzerà al backend
+      // URL relativo: Vite proxy lo reindirizzerà al backend (solo in dev locale)
       return `/api/drive-image/${file.id}`;
     };
 
@@ -440,6 +462,9 @@ app.get('/api/product/:sku', async (req, res) => {
       });
       
       const files = searchResponse.data.files || [];
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:driveSearch',message:'Drive search result',data:{sku,filesCount:files.length,fileNames:files.map(f=>f.name)},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+      // #endregion
       console.log(`📸 Trovati ${files.length} file immagine per SKU ${sku} in tutto il Drive`);
       
       if (files.length > 0) {
@@ -480,6 +505,9 @@ app.get('/api/product/:sku', async (req, res) => {
       }
       
       // Converti in URL
+      // #region agent log
+      fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:beforeGetImageUrl',message:'mainImageFile before getImageUrl',data:{sku,hasMainImageFile:!!mainImageFile,mainImageFileName:mainImageFile?.name},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+      // #endregion
       product.mainImage = getImageUrl(mainImageFile);
       product.mainImageFileName = mainImageFile?.name || null;
       
@@ -528,6 +556,10 @@ app.get('/api/product/:sku', async (req, res) => {
 
 // Proxy endpoint per servire immagini Google Drive (bypass CORS e permessi)
 app.get('/api/drive-image/:fileId', async (req, res) => {
+  // #region agent log
+  const _fileId = req.params.fileId;
+  fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:drive-image:entry',message:'drive-image endpoint hit',data:{fileId:_fileId},timestamp:Date.now(),hypothesisId:'H3,H4'})}).catch(()=>{});
+  // #endregion
   try {
     const { fileId } = req.params;
     const drive = google.drive({ version: 'v3', auth });
@@ -543,9 +575,15 @@ app.get('/api/drive-image/:fileId', async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=3600');
     
     // Stream del file al client
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:drive-image:success',message:'drive-image stream started',data:{fileId:req.params.fileId},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
     fileResponse.data.pipe(res);
     
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'server.js:drive-image:error',message:'drive-image failed',data:{fileId:req.params.fileId,error:error.message},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
     console.error('Error serving image:', error.message);
     res.status(404).json({ error: 'Image not found' });
   }
