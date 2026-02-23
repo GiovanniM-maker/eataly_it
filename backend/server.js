@@ -31,7 +31,6 @@ const protectApi = (req, res, next) => {
   // #endregion
   if (!hasAuth) return next();
   if (req.path === '/health' || req.path.startsWith('/auth/')) return next();
-  if (req.path.includes('/debug/')) return next();
   // Immagini: <img src> non invia Authorization, quindi drive-image deve essere pubblico
   // req.path è /api/drive-image/xxx, non /drive-image/xxx
   if (req.path.includes('drive-image')) return next();
@@ -55,7 +54,19 @@ const upload = multer({
 app.use(cors());
 app.use(express.json());
 
-// Auth middleware: proteggi tutte le route /api tranne health e auth
+// Debug e health PRIMA di protectApi (pubblici)
+app.get('/api/health', (req, res) => res.json({ ok: true, app: 'N8N Drive Backend' }));
+app.get('/api/debug/image-config', (req, res) => {
+  const backendUrl = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || process.env.VITE_API_URL || '';
+  res.json({
+    backendUrl: backendUrl || '(empty)',
+    hasBackendUrl: !!backendUrl,
+    sampleImageUrl: backendUrl ? `${backendUrl.replace(/\/$/, '')}/api/drive-image/TEST_ID` : null,
+    env: { hasBackend: !!process.env.BACKEND_URL, hasRender: !!process.env.RENDER_EXTERNAL_URL, hasVite: !!process.env.VITE_API_URL },
+  });
+});
+
+// Auth middleware: proteggi tutte le route /api tranne health, debug e auth
 app.use('/api', protectApi);
 
 // --- Auth routes (pubbliche) ---
@@ -68,16 +79,6 @@ app.post('/api/auth/login', (req, res) => {
   if (!role) return res.status(401).json({ error: 'Password errata' });
   const token = jwt.sign({ role }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, role });
-});
-
-app.get('/api/debug/image-config', (req, res) => {
-  const backendUrl = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || process.env.VITE_API_URL || '';
-  res.json({
-    backendUrl: backendUrl || '(empty)',
-    hasBackendUrl: !!backendUrl,
-    sampleImageUrl: backendUrl ? `${backendUrl.replace(/\/$/, '')}/api/drive-image/TEST_ID` : null,
-    env: { hasBackend: !!process.env.BACKEND_URL, hasRender: !!process.env.RENDER_EXTERNAL_URL, hasVite: !!process.env.VITE_API_URL },
-  });
 });
 
 app.get('/api/auth/check', (req, res) => {
@@ -116,9 +117,6 @@ const checkAndResetStats = () => {
     stats.lastResetDate = today;
   }
 };
-
-// Verifica che sia il backend giusto
-app.get('/api/health', (req, res) => res.json({ ok: true, app: 'N8N Drive Backend' }));
 
 // Activity feed (ultimi 20)
 app.get('/api/activity', (req, res) => {
