@@ -11,13 +11,9 @@ export function AuthProvider({ children }) {
   const [protectedApp, setProtectedApp] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    fetch(`${apiUrl()}/api/auth/check`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    const headers = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    fetch(`${apiUrl()}/api/auth/check`, { headers })
       .then((r) => r.json())
       .then((data) => {
         setProtectedApp(data.protected ?? false);
@@ -31,6 +27,7 @@ export function AuthProvider({ children }) {
         }
       })
       .catch(() => {
+        setProtectedApp(true);
         setToken(null);
         setRole(null);
       })

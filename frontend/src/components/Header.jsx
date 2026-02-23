@@ -1,7 +1,15 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
   const { logout, protectedApp, role } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSwitchAccount = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 h-[64px] glass-effect z-50 flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
@@ -21,15 +29,21 @@ export default function Header() {
         {protectedApp && (
           <button
             type="button"
-            onClick={logout}
+            onClick={handleSwitchAccount}
             className="text-gray-400 hover:text-white text-sm px-3 py-1.5 rounded hover:bg-white/5 transition-colors"
           >
             Esci
           </button>
         )}
-        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/30">
+        <button
+          type="button"
+          onClick={handleSwitchAccount}
+          className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/30 hover:bg-primary/30 transition-colors cursor-pointer"
+          title="Cambia account"
+          aria-label="Cambia account"
+        >
           {role === 'admin' ? 'A' : role === 'limited' ? 'L' : '?'}
-        </div>
+        </button>
       </div>
     </header>
   );
