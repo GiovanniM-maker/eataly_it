@@ -26,6 +26,8 @@ const authenticateToken = (req, res, next) => {
 const protectApi = (req, res, next) => {
   if (!hasAuth) return next();
   if (req.path === '/health' || req.path.startsWith('/auth/')) return next();
+  // Immagini: <img src> non invia Authorization, quindi drive-image deve essere pubblico
+  if (req.path.startsWith('/drive-image/')) return next();
   authenticateToken(req, res, next);
 };
 
