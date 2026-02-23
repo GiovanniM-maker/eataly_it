@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Skeleton from './Skeleton';
 import { useAuth } from '../context/AuthContext';
+import { useSidebar } from '../context/SidebarContext';
 
 const apiUrl = () => import.meta.env.VITE_API_URL || '';
 
 export default function Sidebar() {
   const { authFetch, canAccessHome } = useAuth();
+  const { isOpen, close } = useSidebar();
   const location = useLocation();
   const isPreviewPage = location.pathname === '/preview';
   const [stats, setStats] = useState(null);
@@ -141,6 +143,7 @@ export default function Sidebar() {
     setViewedProducts(newViewed);
     localStorage.setItem('viewedProducts', JSON.stringify([...newViewed]));
     window.dispatchEvent(new CustomEvent('selectProduct', { detail: sku }));
+    close(); // Chiudi sidebar su mobile dopo selezione
   };
 
   const formatActivityTime = (timestamp) => {
@@ -187,13 +190,40 @@ export default function Sidebar() {
   });
 
   return (
-    <aside className="fixed top-[64px] left-0 bottom-0 w-[256px] bg-background-dark/50 backdrop-blur-md border-r border-white/5 flex flex-col overflow-y-auto custom-scrollbar z-40">
-      <div className="p-4 space-y-6">
+    <>
+      {/* Overlay mobile: chiude sidebar al tap */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={close}
+        onKeyDown={(e) => e.key === 'Escape' && close()}
+        className={`lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        aria-hidden="true"
+      />
+      <aside
+        className={`fixed top-[64px] left-0 bottom-0 w-[256px] max-w-[85vw] bg-background-dark/95 backdrop-blur-md border-r border-white/5 flex flex-col overflow-y-auto custom-scrollbar z-50 transition-transform duration-300 ease-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} lg:z-40`}
+      >
+        <div className="p-4 space-y-6">
+          <div className="flex items-center justify-between lg:hidden mb-2">
+            <span className="text-sm font-medium text-gray-400">Menu</span>
+            <button
+              type="button"
+              onClick={close}
+              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5"
+              aria-label="Chiudi menu"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
         <nav className="space-y-1">
-          <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Menu</p>
+          <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 hidden lg:block">Menu</p>
           {canAccessHome && (
             <Link
               to="/home"
+              onClick={close}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                 location.pathname === '/home'
                   ? 'text-primary font-medium bg-white/5'
@@ -206,6 +236,7 @@ export default function Sidebar() {
           )}
           <Link
             to="/preview"
+            onClick={close}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
               location.pathname === '/preview'
                 ? 'text-primary font-medium bg-white/5'
@@ -423,5 +454,6 @@ export default function Sidebar() {
         )}
       </div>
     </aside>
+    </>
   );
 }

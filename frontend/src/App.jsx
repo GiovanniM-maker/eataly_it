@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
+import { SidebarProvider } from './context/SidebarContext';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -13,7 +14,7 @@ import LoginPage from './pages/LoginPage';
 
 function HomePage() {
   return (
-    <main className="ml-[256px] mt-[64px] p-8 min-h-screen">
+    <main className="ml-0 lg:ml-[256px] mt-[64px] p-4 sm:p-6 lg:p-8 min-h-screen">
       <div className="max-w-[1200px] mx-auto space-y-6">
         <GenerateButton />
         <ImageUploader />
@@ -48,8 +49,9 @@ function App() {
               path="/*"
               element={
                 <ProtectedRoute>
-                  <Header />
-                  <Sidebar />
+                  <SidebarProvider>
+                    <Header />
+                    <Sidebar />
                   <Routes>
                     <Route path="/" element={<Navigate to="/preview" replace />} />
                     <Route
@@ -62,6 +64,7 @@ function App() {
                     />
                     <Route path="/preview" element={<PreviewPage />} />
                   </Routes>
+                  </SidebarProvider>
                 </ProtectedRoute>
               }
             />

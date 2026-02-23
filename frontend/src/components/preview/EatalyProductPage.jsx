@@ -75,9 +75,6 @@ export default function EatalyProductPage({ sku }) {
       console.log('🥗 Immagini nutrizionali:', data.product.nutritionalImages);
       
       if (data.product.mainImage) {
-        // #region agent log
-        fetch('http://127.0.0.1:7245/ingest/4d0d2b22-9f37-4c1e-ae7c-756ed5f862aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'EatalyProductPage.jsx:fetchProduct',message:'mainImage URL received',data:{mainImage:data.product.mainImage,isRelative:data.product.mainImage.startsWith('/'),sku},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
         console.log('✅ URL immagine principale ricevuto:', data.product.mainImage);
         console.log('   Tipo:', typeof data.product.mainImage);
         console.log('   Lunghezza:', data.product.mainImage.length);
@@ -264,7 +261,7 @@ export default function EatalyProductPage({ sku }) {
   const imageSectionKey = product.mainImage ? getImageSectionKey() : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8" style={{ 
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8" style={{ 
       fontFamily: 'Nunito,sans-serif',
       fontSize: '15px',
       fontWeight: 300,
