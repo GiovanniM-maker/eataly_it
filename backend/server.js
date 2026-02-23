@@ -1,9 +1,33 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const jwt = require('jsonwebtoken');
 const { google } = require('googleapis');
 const stream = require('stream');
 require('dotenv').config();
+
+const APP_PASSWORD_ADMIN = process.env.APP_PASSWORD_ADMIN;
+const APP_PASSWORD_LIMITED = process.env.APP_PASSWORD_LIMITED;
+const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+const hasAuth = !!(APP_PASSWORD_ADMIN || APP_PASSWORD_LIMITED);
+
+const authenticateToken = (req, res, next) => {
+  if (!hasAuth) return next();
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token mancante' });
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ error: 'Token non valido' });
+    req.user = decoded;
+    next();
+  });
+};
+
+const protectApi = (req, res, next) => {
+  if (!hasAuth) return next();
+  if (req.path === '/health' || req.path.startsWith('/auth/')) return next();
+  authenticateToken(req, res, next);
+};
 
 const app = express();
 const upload = multer({
@@ -21,6 +45,32 @@ const upload = multer({
 
 app.use(cors());
 app.use(express.json());
+
+// Auth middleware: proteggi tutte le route /api tranne health e auth
+app.use('/api', protectApi);
+
+// --- Auth routes (pubbliche) ---
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body || {};
+  if (!hasAuth) return res.status(500).json({ error: 'Auth non configurata' });
+  let role = null;
+  if (password === APP_PASSWORD_ADMIN) role = 'admin';
+  else if (password === APP_PASSWORD_LIMITED) role = 'limited';
+  if (!role) return res.status(401).json({ error: 'Password errata' });
+  const token = jwt.sign({ role }, JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, role });
+});
+
+app.get('/api/auth/check', (req, res) => {
+  if (!hasAuth) return res.json({ protected: false });
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.json({ protected: true, valid: false });
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.json({ protected: true, valid: false });
+    res.json({ protected: true, valid: true, role: decoded.role });
+  });
+});
 
 // --- Activity log & stats (in-memory) ---
 let activityLog = [];

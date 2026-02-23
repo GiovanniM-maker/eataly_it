@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const apiUrl = () => import.meta.env.VITE_API_URL || '';
 const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_COMMENTS_WEBHOOK_URL || 'https://giovannimavilla.app.n8n.cloud/webhook/cde25c0d-51b7-4c73-b1b0-04501a9c4b76';
@@ -21,6 +22,7 @@ const formatDate = (timestamp) => {
  * Modal per inserire commenti su sezioni specifiche
  */
 export default function CommentModal({ sectionKey, currentText, productId, onClose, onCommentSent }) {
+  const { authFetch } = useAuth();
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingComments, setExistingComments] = useState([]);
@@ -37,7 +39,7 @@ export default function CommentModal({ sectionKey, currentText, productId, onClo
       const url = `${apiUrl()}/api/comments/${productId}?section=${sectionKey}`;
       console.log('🔍 Fetching comments from:', url);
       
-      const response = await fetch(url);
+      const response = await authFetch(url);
       
       if (!response.ok) {
         const text = await response.text();

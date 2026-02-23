@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Skeleton from './Skeleton';
+import { useAuth } from '../context/AuthContext';
 
 const apiUrl = () => import.meta.env.VITE_API_URL || '';
 
 export default function Sidebar() {
+  const { authFetch, canAccessHome } = useAuth();
   const location = useLocation();
   const isPreviewPage = location.pathname === '/preview';
   const [stats, setStats] = useState(null);
@@ -24,7 +26,7 @@ export default function Sidebar() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${apiUrl()}/api/stats`);
+        const res = await authFetch(`${apiUrl()}/api/stats`);
         const data = await res.json();
         setStats(data);
       } catch (e) {
@@ -37,7 +39,7 @@ export default function Sidebar() {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const res = await fetch(`${apiUrl()}/api/activity`);
+        const res = await authFetch(`${apiUrl()}/api/activity`);
         const data = await res.json();
         setActivities(data.activities || []);
       } catch (e) {
@@ -54,7 +56,7 @@ export default function Sidebar() {
     const fetchRecentFiles = async () => {
       if (isFirst) setLoadingFiles(true);
       try {
-        const res = await fetch(`${apiUrl()}/api/recent-files`);
+        const res = await authFetch(`${apiUrl()}/api/recent-files`);
         const data = await res.json();
         setRecentFiles(data.files || []);
       } catch (e) {
@@ -72,7 +74,7 @@ export default function Sidebar() {
   useEffect(() => {
     const fetchQuota = async () => {
       try {
-        const res = await fetch(`${apiUrl()}/api/storage-quota`);
+        const res = await authFetch(`${apiUrl()}/api/storage-quota`);
         const data = await res.json();
         setStorageQuota(data);
       } catch (e) {
@@ -88,7 +90,7 @@ export default function Sidebar() {
   const fetchProducts = async (silent = false) => {
     if (!silent) setLoadingProducts(true);
     try {
-      const response = await fetch(`${apiUrl()}/api/products/list`);
+      const response = await authFetch(`${apiUrl()}/api/products/list`);
       const data = await response.json();
       setProducts(data.products || []);
     } catch (err) {
@@ -189,17 +191,19 @@ export default function Sidebar() {
       <div className="p-4 space-y-6">
         <nav className="space-y-1">
           <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Menu</p>
-          <Link
-            to="/home"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-              location.pathname === '/home'
-                ? 'text-primary font-medium bg-white/5'
-                : 'text-gray-400 hover:bg-white/5'
-            }`}
-          >
-            <span className="material-symbols-outlined text-xl">home</span>
-            <span className="text-sm text-gray-200">Home</span>
-          </Link>
+          {canAccessHome && (
+            <Link
+              to="/home"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                location.pathname === '/home'
+                  ? 'text-primary font-medium bg-white/5'
+                  : 'text-gray-400 hover:bg-white/5'
+              }`}
+            >
+              <span className="material-symbols-outlined text-xl">home</span>
+              <span className="text-sm text-gray-200">Home</span>
+            </Link>
+          )}
           <Link
             to="/preview"
             className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${

@@ -1,4 +1,7 @@
+import { useAuth } from '../context/AuthContext';
+
 export default function Header() {
+  const { logout, protectedApp, role } = useAuth();
   return (
     <header className="fixed top-0 left-0 right-0 h-[64px] glass-effect z-50 flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
@@ -12,15 +15,20 @@ export default function Header() {
         </h1>
       </div>
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          className="p-2 hover:bg-white/5 rounded transition-colors text-gray-400"
-          aria-label="Impostazioni"
-        >
-          <span className="material-symbols-outlined">settings</span>
-        </button>
+        {role && (
+          <span className="text-xs text-gray-500 uppercase tracking-wider">{role}</span>
+        )}
+        {protectedApp && (
+          <button
+            type="button"
+            onClick={logout}
+            className="text-gray-400 hover:text-white text-sm px-3 py-1.5 rounded hover:bg-white/5 transition-colors"
+          >
+            Esci
+          </button>
+        )}
         <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/30">
-          JM
+          {role === 'admin' ? 'A' : role === 'limited' ? 'L' : '?'}
         </div>
       </div>
     </header>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const apiUrl = () => import.meta.env.VITE_API_URL || '';
 
 export default function GenerateButton() {
+  const { authFetch } = useAuth();
   const [status, setStatus] = useState('idle');
   const [workflowId, setWorkflowId] = useState(null);
   const [workflowStatus, setWorkflowStatus] = useState(null);
@@ -21,14 +23,14 @@ export default function GenerateButton() {
     setWorkflowStatus(null);
 
     try {
-      const response = await fetch(`${apiUrl()}/api/generate`, {
+      const response = await authFetch(`${apiUrl()}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflowId: newWorkflowId }),
       });
 
       if (response.ok) {
-        await fetch(`${apiUrl()}/api/trigger-stat`, { method: 'POST' }).catch(() => {});
+        await authFetch(`${apiUrl()}/api/trigger-stat`, { method: 'POST' }).catch(() => {});
         toast.success('Workflow N8N avviato!', { icon: '🚀' });
         setTimeout(() => {
           if (pendingIdRef.current === newWorkflowId) {
@@ -64,7 +66,7 @@ export default function GenerateButton() {
     if (!workflowId || status !== 'loading') return;
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`${apiUrl()}/api/workflow-status/${workflowId}`);
+        const response = await authFetch(`${apiUrl()}/api/workflow-status/${workflowId}`);
         const data = await response.json();
         setWorkflowStatus(data);
         if (data.status === 'completed') {

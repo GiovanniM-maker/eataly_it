@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const formatFileSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -22,6 +23,7 @@ export default function ImageUploader() {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState([]);
   const inputRef = useRef(null);
+  const { authFetch } = useAuth();
   const apiUrl = () => import.meta.env.VITE_API_URL || '';
 
   const handleFiles = (fileList) => {
@@ -65,7 +67,7 @@ export default function ImageUploader() {
     files.forEach((f) => formData.append('images', f));
     const toastId = toast.loading(`Caricamento ${files.length} file...`);
     try {
-      const response = await fetch(`${apiUrl()}/api/upload`, { method: 'POST', body: formData });
+      const response = await authFetch(`${apiUrl()}/api/upload`, { method: 'POST', body: formData });
       const text = await response.text();
       let data = {};
       try { data = text ? JSON.parse(text) : {}; } catch {}

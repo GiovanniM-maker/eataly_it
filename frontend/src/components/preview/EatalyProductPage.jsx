@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import CommentableSection from './CommentableSection';
 import ImageLightbox from './ImageLightbox';
 import { COMMENT_SECTIONS } from '../../constants/commentSections';
+import { useAuth } from '../../context/AuthContext';
 
 const apiUrl = () => import.meta.env.VITE_API_URL || '';
 
 export default function EatalyProductPage({ sku }) {
+  const { authFetch } = useAuth();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('prodotto');
@@ -33,7 +35,7 @@ export default function EatalyProductPage({ sku }) {
   useEffect(() => {
     if (product?.sku) {
       // Invalida cache per assicurarsi di avere dati freschi per il nuovo prodotto
-      fetch(`${apiUrl()}/api/comments/invalidate/${product.sku}`, { method: 'POST' }).catch(() => {});
+      authFetch(`${apiUrl()}/api/comments/invalidate/${product.sku}`, { method: 'POST' }).catch(() => {});
       // Fetch immediato senza delay
       fetchCommentSummary(product.sku);
     }
@@ -66,7 +68,7 @@ export default function EatalyProductPage({ sku }) {
   const fetchProduct = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiUrl()}/api/product/${sku}`);
+      const response = await authFetch(`${apiUrl()}/api/product/${sku}`);
       const data = await response.json();
       console.log('📦 Dati prodotto ricevuti:', data.product);
       console.log('📷 Immagine principale:', data.product.mainImage);
@@ -93,7 +95,7 @@ export default function EatalyProductPage({ sku }) {
       const url = `${apiUrl()}/api/comments/summary/${productSku}`;
       console.log('🔍 Fetching comment summary from:', url);
       
-      const response = await fetch(url);
+      const response = await authFetch(url);
       
       if (!response.ok) {
         const text = await response.text();
@@ -137,7 +139,7 @@ export default function EatalyProductPage({ sku }) {
     
     // Invalida cache backend
     try {
-      await fetch(`${apiUrl()}/api/comments/invalidate/${product.sku}`, { method: 'POST' });
+      await authFetch(`${apiUrl()}/api/comments/invalidate/${product.sku}`, { method: 'POST' });
     } catch (err) {
       console.error('Error invalidating cache:', err);
     }
@@ -156,7 +158,7 @@ export default function EatalyProductPage({ sku }) {
       
       try {
         const url = `${apiUrl()}/api/comments/summary/${product.sku}`;
-        const response = await fetch(url);
+        const response = await authFetch(url);
         
         if (response.ok) {
           const data = await response.json();

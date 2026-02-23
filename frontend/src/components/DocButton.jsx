@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const apiUrl = () => import.meta.env.VITE_API_URL || '';
 const DEFAULT_COL_WIDTH = 120;
@@ -6,6 +7,7 @@ const MIN_COL_WIDTH = 60;
 const INDEX_COL_WIDTH = 48;
 
 export default function DocButton() {
+  const { authFetch } = useAuth();
   const [sheetData, setSheetData] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ export default function DocButton() {
   const fetchSheetData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiUrl()}/api/sheet-data`);
+      const response = await authFetch(`${apiUrl()}/api/sheet-data`);
       const text = await response.text();
       let data = { values: [], lastUpdate: null };
       if (text) try { data = JSON.parse(text); } catch { setSheetData([]); setLoading(false); return; }
