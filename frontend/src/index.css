@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  letter-spacing: -0.01em;
+  background-color: #0a0a0a;
+  color: #e5e5e5;
+}
+
+.glass-effect {
+  background: rgba(22, 22, 22, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 15px rgba(234, 115, 115, 0.3);
+}
+
+.border-subtle {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}

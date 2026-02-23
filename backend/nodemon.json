@@ -1,0 +1,4 @@
+{
+  "watch": ["server.js"],
+  "ignore": ["node_modules", ".env", "*.log", ".git", "*.bak", "*.swp", ".cursor", ".vscode"]
+}

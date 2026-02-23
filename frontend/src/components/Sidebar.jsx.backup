@@ -1,0 +1,235 @@
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import Skeleton from './Skeleton';
+
+const apiUrl = () => import.meta.env.VITE_API_URL || '';
+
+export default function Sidebar() {
+  const location = useLocation();
+  const [stats, setStats] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [recentFiles, setRecentFiles] = useState([]);
+  const [storageQuota, setStorageQuota] = useState(null);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${apiUrl()}/api/stats`);
+        const data = await res.json();
+        setStats(data);
+      } catch (e) {
+        console.error('Stats fetch error:', e);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch(`${apiUrl()}/api/activity`);
+        const data = await res.json();
+        setActivities(data.activities || []);
+      } catch (e) {
+        console.error('Activity fetch error:', e);
+      }
+    };
+    fetchActivities();
+    const interval = setInterval(fetchActivities, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let isFirst = true;
+    const fetchRecentFiles = async () => {
+      if (isFirst) setLoadingFiles(true);
+      try {
+        const res = await fetch(`${apiUrl()}/api/recent-files`);
+        const data = await res.json();
+        setRecentFiles(data.files || []);
+      } catch (e) {
+        console.error('Recent files error:', e);
+      } finally {
+        setLoadingFiles(false);
+        isFirst = false;
+      }
+    };
+    fetchRecentFiles();
+    const interval = setInterval(fetchRecentFiles, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const fetchQuota = async () => {
+      try {
+        const res = await fetch(`${apiUrl()}/api/storage-quota`);
+        const data = await res.json();
+        setStorageQuota(data);
+      } catch (e) {
+        console.error('Quota fetch error:', e);
+      }
+    };
+    fetchQuota();
+    const interval = setInterval(fetchQuota, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatActivityTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSecs = Math.floor(diffMs / 1000);
+    if (diffSecs < 60) return 'Ora';
+    const diffMins = Math.floor(diffSecs / 60);
+    if (diffMins < 60) return `${diffMins}m fa`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h fa`;
+    return date.toLocaleDateString('it-IT');
+  };
+
+  const fileIcon = (name) => {
+    const ext = (name || '').split('.').pop()?.toLowerCase();
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'image';
+    if (['pdf'].includes(ext)) return 'description';
+    return 'table_rows';
+  };
+
+  const fileIconColor = (name) => {
+    const ext = (name || '').split('.').pop()?.toLowerCase();
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'text-blue-400';
+    if (['pdf'].includes(ext)) return 'text-red-400';
+    return 'text-green-400';
+  };
+
+  return (
+    <aside className="fixed top-[64px] left-0 bottom-0 w-[256px] bg-background-dark/50 backdrop-blur-md border-r border-white/5 flex flex-col overflow-y-auto custom-scrollbar z-40">
+      <div className="p-4 space-y-6">
+        <nav className="space-y-1">
+          <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            Menu
+          </p>
+          <Link
+            to="/"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              location.pathname === '/'
+                ? 'text-primary font-medium bg-white/5'
+                : 'text-gray-400 hover:bg-white/5'
+            }`}
+          >
+            <span className="material-symbols-outlined text-xl">home</span>
+            <span className="text-sm text-gray-200">Home</span>
+          </Link>
+          <Link
+            to="/preview"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              location.pathname === '/preview'
+                ? 'text-primary font-medium bg-white/5'
+                : 'text-gray-400 hover:bg-white/5'
+            }`}
+          >
+            <span className="material-symbols-outlined text-xl">visibility</span>
+            <span className="text-sm">Preview</span>
+          </Link>
+        </nav>
+
+        <div className="space-y-2">
+          <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            Today Statistics
+          </p>
+          <div className="grid grid-cols-2 gap-2 px-1">
+            <div className="bg-white/5 p-3 rounded border border-white/5">
+              <p className="text-[10px] text-gray-500 font-medium">Upload</p>
+              <p className="text-xl font-bold text-white">
+                {stats?.uploadsToday ?? 0}
+              </p>
+            </div>
+            <div className="bg-white/5 p-3 rounded border border-white/5">
+              <p className="text-[10px] text-gray-500 font-medium">Trigger</p>
+              <p className="text-xl font-bold text-white">
+                {stats?.triggersToday ?? 0}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {storageQuota && (
+          <div className="space-y-2">
+            <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+              Storage Drive
+            </p>
+            <div className="px-3 space-y-1">
+              <div className="flex justify-between text-[11px] text-gray-500">
+                <span>{storageQuota.used} GB</span>
+                <span>{storageQuota.limit} GB</span>
+              </div>
+              <div className="w-full bg-white/5 rounded-full h-1.5">
+                <div
+                  className="bg-primary h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(100, parseFloat(storageQuota.percentage))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            Recent Files
+          </p>
+          <div className="space-y-1">
+            {loadingFiles ? (
+              <>
+                <Skeleton className="h-8 mb-1 bg-white/5" />
+                <Skeleton className="h-8 mb-1 bg-white/5" />
+                <Skeleton className="h-8 bg-white/5" />
+              </>
+            ) : recentFiles.length === 0 ? (
+              <p className="px-3 text-xs text-gray-500 italic">Nessun file recente</p>
+            ) : (
+              recentFiles.slice(0, 5).map((f, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded group cursor-pointer"
+                  title={f.name}
+                >
+                  <span className={`material-symbols-outlined text-sm ${fileIconColor(f.name)}`}>
+                    {fileIcon(f.name)}
+                  </span>
+                  <span className="text-xs text-gray-300 truncate">{f.name}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            Activity Feed
+          </p>
+          <div className="space-y-4 px-3 border-l-2 border-white/10 ml-3">
+            {activities.length === 0 ? (
+              <p className="text-[11px] text-gray-500 italic">Nessuna attività</p>
+            ) : (
+              activities.slice(0, 5).map((activity, idx) => (
+                <div key={activity.id ?? idx} className="relative pl-4">
+                  <div
+                    className={`absolute -left-[11px] top-1 h-3 w-3 rounded-full ${
+                      activity.type === 'trigger' ? 'bg-primary' : 'bg-gray-500'
+                    }`}
+                  />
+                  <p className="text-[11px] text-gray-200 font-medium truncate">
+                    {activity.message}
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    {formatActivityTime(activity.timestamp)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}

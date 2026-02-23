@@ -1,0 +1,11 @@
+{
+  "name": "n8n-drive-app",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "start": "concurrently -n backend,frontend \"cd backend && npm start\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
